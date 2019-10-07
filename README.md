@@ -14,6 +14,7 @@ This is still a large WIP, currently being used to turn a Feed the Beast server 
 4. Clone this repo into a desired folder
 5. Change the instance ID in bot.py to your desired instance
 6. Set the discord token environment variable with the name 'AWSDISCORDTOKEN'
-7. python3 bot.py :)
+7. Set the discord guild id in environment variable 'AWSDISCORDGUILD'
+8. python3 bot.py :)
 
 For easy and reliable usage I reccomend using upstart to restart on error and start on system startup
