@@ -4,7 +4,8 @@ client = discord.Client()
 
 ec2 = boto3.resource('ec2')
 #Temp
-instance = ec2.Instance('i-06bc2e80c17a5636c')
+instance = ec2.Instance('i-02c48a9cb25bbf444')
+guild_id = int(os.environ['AWSDISCORDGUILD'])
 
 @client.event
 async def on_ready():
@@ -16,24 +17,27 @@ async def on_ready():
 @client.event
 async def on_message(message):
     memberIDs = (member.id for member in message.mentions)
-    if client.user.id in memberIDs:
+    if (message.channel.guild.id == guild_id and client.user.id in memberIDs):
+        channel = message.channel
         if 'stop' in message.content:
             if turnOffInstance():
-                await client.send_message(message.channel, 'AWS Instance stopping')
+                await message.channel.send('AWS Instance stopping')
             else:
-                await client.send_message(message.channel, 'Error stopping AWS Instance')
+                await message.channel.send('Error stopping AWS Instance')
         elif 'start' in message.content:
             if turnOnInstance():
-                await client.send_message(message.channel, 'AWS Instance starting')
+                await message.channel.send('AWS Instance starting')
             else:
-                await client.send_message(message.channel, 'Error starting AWS Instance')
+                await message.channel.send('Error starting AWS Instance')
         elif 'state' in message.content:
-            await client.send_message(message.channel, 'AWS Instance state is: ' + getInstanceState())
+            await message.channel.send('AWS Instance state is: ' + getInstanceState())
         elif 'reboot' in message.content:
             if rebootInstance():
-                await client.send_message(message.channel, 'AWS Instance rebooting')
+                await message.channel.send('AWS Instance rebooting')
             else:
-                await client.send_message(message.channel, 'Error rebooting AWS Instance')
+                await message.channel.send('Error rebooting AWS Instance')
+        elif 'info' in message.content:
+            await message.channel.send('Server start/stop bot. Commands are `start`, `stop`, `state`, `reboot` and `info`')
 
 def turnOffInstance():
     try:
