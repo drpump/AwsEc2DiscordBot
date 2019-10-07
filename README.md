@@ -17,4 +17,24 @@ This is still a large WIP, currently being used to turn a Feed the Beast server 
 7. Set the discord guild id in environment variable 'AWSDISCORDGUILD'
 8. python3 bot.py :)
 
-For easy and reliable usage I reccomend using upstart to restart on error and start on system startup
+## Run daemon in cloud
+Assuming you've already got it running locally using the instructions above ...
+1. Create cloud VM using an Ubuntu image and login
+2. Install python3 ```sudo apt install python3```
+3. Install AWS cli ```sudo pip3 install awscli```. You might need to use ```--target /usr/lib/python3.X``` to ensure it is installed system-wide.
+4. Install required libs ```sudo pip3 install boto3 discord```. 
+5. Create a daemon user with a home dir ```sudo useradd -m ec2bot```
+6. Su to that user ```sudo su - ec2bot```
+7. Setup AWS using ```aws configure``` (you will need suitable AWS credentials, preferably locked down to limit capabilities), or copy an already configured `.aws` directory for this user (chmod'ed so ec2bot owns the dir and)
+8. Copy/download `bot.py` into the home directory
+9. Exit from your `su` session (```^D```)
+10. Copy/download `ec2bot.service` 
+11. Edit and set the `AWSDISCORDTOKEN` and `AWSDISCORDGUILD` environment variables
+12. Copy for systemd ```sudo cp ec2bot.service /etc/systemd/system/```
+13. Load and enable 
+```
+  sudo systemctl daemon-reload 
+  sudo systemctl enable ec2bot
+  sudo systemctl start ec2bot
+```
+14. Use `tail /var/log/syslog` to check output and make sure it is running
