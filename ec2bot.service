@@ -1,0 +1,13 @@
+[Unit]
+Description=Daemon to start/stop discord ec2 bot server on AWS
+
+[Service]
+Type=exec
+User=discordbot
+Environment="AWSDISCORDTOKEN=?" "AWSDISCORDGUILD=?" "AWSBOTPATH=?"
+Restart=on-failure
+ExecStart=/bin/sh -ec "exec python3 $AWSBOTPATH/bot.py"
+
+[Install]
+WantedBy=network-online.target
+
