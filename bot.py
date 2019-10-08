@@ -1,4 +1,4 @@
-import discord, asyncio, os, boto3
+import discord, asyncio, os, boto3, socket
 
 client = discord.Client()
 
@@ -54,7 +54,20 @@ def turnOnInstance():
         return False
 
 def getInstanceState():
-    return instance.state['Name']
+    aws_state = instance.state
+    if (aws_state['Name'] == 'running'):
+        return getPortState(aws_state['public_ip_address'], 25565)
+    else:
+        return aws_state['Name']
+
+def getPortState(ip, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(3.0)
+    ready = sock.connect_ex((ip, port))
+    if ready == 0:
+        return 'ready at ' + ip 
+    else:
+        return 'game startup in progress, please wait'
 
 def rebootInstance():
     try:
