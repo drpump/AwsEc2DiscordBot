@@ -56,7 +56,7 @@ def turnOnInstance():
 def getInstanceState():
     aws_state = instance.state
     if (aws_state['Name'] == 'running'):
-        return getPortState(aws_state['public_ip_address'], 25565)
+        return getPortState(instance.public_ip_address, 25565)
     else:
         return aws_state['Name']
 

@@ -1,5 +1,12 @@
 # AWS EC2 Controller Discord Bot
-This is still a large WIP, currently being used to turn a Feed the Beast server on and off from Discord. End goal is to have a larger amount of commands, easier integration with your own AWS account and not having just one hard coded instance.
+Fork of https://github.com/leobeosab/AwsEc2DiscordBot with a few mods to make it easy for 
+my kids and friends to start/stop a minecraft server, including:
+* fixed some issues arising from newer discord module
+* replaced hard coding with environment variables
+* bot limited to a single guild
+* added `info` command
+* `state` checks to see if minecraft port is accessible and reports appropriately
+* template for a `systemd` linux service added
 
 ## Tools Used
 * Python 3 and pip3
