@@ -4,7 +4,7 @@ Description=Daemon to start/stop discord ec2 bot server on AWS
 [Service]
 Type=exec
 User=ec2bot
-Environment="AWSDISCORDTOKEN=?" "AWSDISCORDGUILD=?" "AWSBOTPATH=/home/ec2bot/bot.py"
+Environment="AWSDISCORDTOKEN=?" "AWSDISCORDGUILD=?" "AWSBOTPATH=/home/ec2bot/bot.py" "AWSINSTANCEID=?"
 Restart=on-failure
 ExecStart=/bin/sh -ec "exec python3 $AWSBOTPATH/bot.py"
 

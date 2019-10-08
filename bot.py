@@ -4,7 +4,7 @@ client = discord.Client()
 
 ec2 = boto3.resource('ec2')
 #Temp
-instance = ec2.Instance('i-02c48a9cb25bbf444')
+instance = ec2.Instance(os.environ['AWSINSTANCEID'])
 guild_id = int(os.environ['AWSDISCORDGUILD'])
 
 @client.event

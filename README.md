@@ -12,7 +12,7 @@ This is still a large WIP, currently being used to turn a Feed the Beast server 
 2. Setup AWS CLI with ``` aws configure ```
 3. Go to Discord's developer site and setup a bot [here](https://discordapp.com/developers)
 4. Clone this repo into a desired folder
-5. Change the instance ID in bot.py to your desired instance
+5. Set the AWS EC2 instance ID with environment variable 'AWSINSTANCEID'
 6. Set the discord token environment variable with the name 'AWSDISCORDTOKEN'
 7. Set the discord guild id in environment variable 'AWSDISCORDGUILD'
 8. python3 bot.py :)
@@ -29,7 +29,7 @@ Assuming you've already got it running locally using the instructions above ...
 8. Copy/download `bot.py` into the home directory
 9. Exit from your `su` session (```^D```)
 10. Copy/download `ec2bot.service` 
-11. Edit and set the `AWSDISCORDTOKEN` and `AWSDISCORDGUILD` environment variables
+11. Edit and set the `AWSINSTANCEID`, `AWSDISCORDTOKEN` and `AWSDISCORDGUILD` environment variables
 12. Copy for systemd ```sudo cp ec2bot.service /etc/systemd/system/```
 13. Load and enable 
 ```
