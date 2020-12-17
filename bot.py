@@ -1,11 +1,8 @@
-import discord, asyncio, os, boto3, socket
+import discord, asyncio, os, boto3, socket, traceback
 
 client = discord.Client()
 
 ec2 = boto3.resource('ec2')
-#Temp
-instance = ec2.Instance(os.environ['AWSINSTANCEID'])
-guild_id = int(os.environ['AWSDISCORDGUILD'])
 
 @client.event
 async def on_ready():
@@ -17,43 +14,49 @@ async def on_ready():
 @client.event
 async def on_message(message):
     memberIDs = (member.id for member in message.mentions)
-    if (message.channel.guild.id == guild_id and client.user.id in memberIDs):
-        channel = message.channel
+    instances = list(ec2.instances.filter(Filters=[{'Name':'tag:guild', 'Values': [str(message.channel.guild.id)]}]))
+    print('Acting on ' + str(instances[0]) + ' (' + str(len(instances)) + ' matching instances)')
+    # assume that there will never be more than one matching instance
+    if (client.user.id in memberIDs and len(instances) > 0):
         if 'stop' in message.content:
-            if turnOffInstance():
+            if turnOffInstance(instances[0]):
                 await message.channel.send('AWS Instance stopping')
             else:
                 await message.channel.send('Error stopping AWS Instance')
         elif 'start' in message.content:
-            if turnOnInstance():
+            if turnOnInstance(instances[0]):
                 await message.channel.send('AWS Instance starting')
             else:
                 await message.channel.send('Error starting AWS Instance')
         elif 'state' in message.content:
-            await message.channel.send('AWS Instance state is: ' + getInstanceState())
+            await message.channel.send('AWS Instance state is: ' + getInstanceState(instances[0]))
         elif 'reboot' in message.content:
-            if rebootInstance():
+            if rebootInstance(instances[0]):
                 await message.channel.send('AWS Instance rebooting')
             else:
                 await message.channel.send('Error rebooting AWS Instance')
         elif 'info' in message.content:
             await message.channel.send('Server start/stop bot. Commands are `start`, `stop`, `state`, `reboot` and `info`')
+    else:
+        print('Attempt to start bot by unrecognised guild ' + str(message.channel.guild.id))
 
-def turnOffInstance():
+def turnOffInstance(instance):
     try:
-        instance.stop(False, False)
+        instance.stop()
         return True
-    except:
+    except: 
+        print(traceback.format_exc())
         return False
 
-def turnOnInstance():
+def turnOnInstance(instance):
     try:
         instance.start()
         return True
     except:
+        print(traceback.format_exc())
         return False
 
-def getInstanceState():
+def getInstanceState(instance):
     aws_state = instance.state
     if (aws_state['Name'] == 'running'):
         return getPortState(instance.public_ip_address, 25565)
@@ -69,12 +72,12 @@ def getPortState(ip, port):
     else:
         return 'game startup in progress, please wait'
 
-def rebootInstance():
+def rebootInstance(instance):
     try:
         instance.reboot()
         return True
     except:
+        print(traceback.format_exc())
         return False
-
 
 client.run(os.environ['AWSDISCORDTOKEN'])
