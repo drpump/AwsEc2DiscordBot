@@ -61,8 +61,11 @@ def print_status(service):
         if (len(tasks) > 0):
             print(f'Service has {len(tasks)} task, first task accessible at {task_ip(tasks[0])}')
 
-def wait_until_stable(service):
-    waiter.wait(cluster=service['clusterArn'], services=[service['serviceArn']], WaiterConfig={'Delay': 5, 'MaxAttempts': 40})
+async def wait_until_stable(guild, cluster=get_cluster()):
+    state = get_service(guild, cluster)
+    while state['runningCount'] != state['desiredCount']:
+        await asyncio.sleep(5)
+        state = get_service(guild, cluster)
     return
 
 def current_state(service):
@@ -101,7 +104,7 @@ async def on_message(message):
             try:
                 stop_service(service)
                 await message.channel.send('Minecraft stopping ...')
-                wait_until_stable(service)
+                await wait_until_stable(guild)
                 await message.channel.send(current_state(get_service(guild)))
             except Exception as e:
                 print(traceback.format_exc())
@@ -110,7 +113,7 @@ async def on_message(message):
             try:
                 start_service(service)
                 await message.channel.send('Minecraft starting ...')
-                wait_until_stable(service)
+                await wait_until_stable(guild)
                 await message.channel.send(current_state(get_service(guild)))
             except Exception as e:
                 print(traceback.format_exc())
@@ -125,10 +128,10 @@ async def on_message(message):
             try:
                 stop_service(service)
                 await message.channel.send('Minecraft stopping ...')
-                wait_until_stable(service)
+                await wait_until_stable(guild)
                 start_service(service)
                 await message.channel.send('Minecraft starting again...')
-                wait_until_stable(service)
+                await wait_until_stable(guild)
             except Exception as e:
                 await message.channel.send('Error restarting minecraft:' + str(e))
         elif 'info' in message.content:
