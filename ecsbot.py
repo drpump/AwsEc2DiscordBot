@@ -52,7 +52,7 @@ def task_ip(task):
     else:
         return intf.association_attribute['PublicIp']
 
-def status(service):
+def print_status(service):
     if (service == None):
         print("Cannot find service")
     else:
@@ -61,13 +61,88 @@ def status(service):
         if (len(tasks) > 0):
             print(f'Service has {len(tasks)} task, first task accessible at {task_ip(tasks[0])}')
 
-def wait_for_stable(service):
+def wait_until_stable(service):
     waiter.wait(cluster=service['clusterArn'], services=[service['serviceArn']], WaiterConfig={'Delay': 5, 'MaxAttempts': 40})
     return
 
+def current_state(service):
+    if (service == None):
+        return 'Cannot find service'
+    else:
+        if service['runningCount'] == 1 and service['desiredCount'] == 1:
+            return 'Minecraft is running and ready at ' + task_ip(get_tasks(service)[0])
+        elif service['runningCount'] == 1 and service['desiredCount'] == 0:
+            return 'Minecraft is stopping ...'
+        elif service['runningCount'] == 0 and service['desiredCount'] == 1:
+            return 'Minecraft is starting ...'
+        elif service['runningCount'] == 0 and service['desiredCount'] == 0:
+            return 'Minecraft is stopped'
+        else:
+            return 'FUBAR'
+
+@client.event
+async def on_ready():
+    print('Logged into discord as')
+    print(client.user.name)
+    print(client.user.id)
+    print('------------')
+
+@client.event
+async def on_message(message):
+    memberIDs = (member.id for member in message.mentions)
+    guild = str(message.channel.guild.id)
+    service = get_service(guild)
+    if service == None:
+        print('Attempt to send command from unrecognised guild: ' + guild)
+        return
+    elif (client.user.id in memberIDs):
+        print(f'Processing message "{message.content}" from user {client.user.id} and guild {guild}')
+        if 'stop' in message.content:
+            try:
+                stop_service(service)
+                await message.channel.send('Minecraft stopping ...')
+                wait_until_stable(service)
+                await message.channel.send(current_state(get_service(guild)))
+            except Exception as e:
+                print(traceback.format_exc())
+                await message.channel.send('Error stopping minecraft: ' + str(e))
+        elif 'start' in message.content:
+            try:
+                start_service(service)
+                await message.channel.send('Minecraft starting ...')
+                wait_until_stable(service)
+                await message.channel.send(current_state(get_service(guild)))
+            except Exception as e:
+                print(traceback.format_exc())
+                await message.channel.send('Error starting minecraft: ' + str(e))
+        elif 'state' in message.content:
+            try:
+                await message.channel.send(current_state(service))
+            except Exception as e:
+                print(traceback.format_exc())
+                await message.channel.send('Error getting status: ' + str(e))
+        elif 'restart' in message.content:
+            try:
+                stop_service(service)
+                await message.channel.send('Minecraft stopping ...')
+                wait_until_stable(service)
+                start_service(service)
+                await message.channel.send('Minecraft starting again...')
+                wait_until_stable(service)
+            except Exception as e:
+                await message.channel.send('Error restarting minecraft:' + str(e))
+        elif 'info' in message.content:
+            await message.channel.send('Server start/stop bot. Commands are `start`, `stop`, `state`, `restart` and `info`')
+        else:
+            await message.channel.send('Unrecognised command. Commands are `start`, `stop`, `state`, `restart` and `info`')
+        return
+    else:
+        # do nothing, message not for me
+        return
+
 # temporary for testing
-guild_id="786042802630950984"
+guild_id="596215052156272645"
 
 cluster = get_cluster()
 service = get_service(guild_id, cluster)
-status(service)
+print_status(service)
