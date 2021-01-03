@@ -3,93 +3,71 @@ import discord, asyncio, os, boto3, socket, traceback
 client = discord.Client()
 
 ecs = boto3.client('ecs')
+waiter = ecs.get_waiter('services_stable')
 
-def get_service(guild):
+def get_cluster():
+    return next(item for item in ecs.list_clusters()['clusterArns'] if 'minebot' in item)
+
+def get_service(guild, cluster=get_cluster()):
     # find first cluster name containing 'minebot' (should only be one)
-    cluster = next(cl for cl in ecs.list_clusters()['clusterArns'] if 'minebot' in cl)
     services = ecs.describe_services(cluster=cluster, 
                                      services=ecs.list_services(cluster=cluster)['serviceArns'], 
-                                     include=['TAGS'])
-    return next(srv for srv in services['services'] if is_for_guild(srv, guild))
+                                     include=['TAGS'])['services']
+    if (len(services) == 0):
+        return None
+    else:
+        return next((item for item in services if (is_for_guild(item, guild))), None)
 
 def is_for_guild(service, guild):
-    tag = next(tag for tag in service['tags'] if tag['key'] == 'guild')
-    return (guild != None and tag['value'] == guild)
+    tag = next((item for item in service['tags'] if item['key'] == 'guild'), None)
+    return (tag != None and tag['value'] == guild)
 
-@client.event
-async def on_ready():
-    print('Logged in as')
-    print(client.user.name)
-    print(client.user.id)
-    print('------------')
+def start_service(service):
+    ecs.update_service(cluster=service['clusterArn'],
+                       service=service['serviceArn'],
+                       desiredCount=1)
 
-@client.event
-async def on_message(message):
-    memberIDs = (member.id for member in message.mentions)
-    instances = list(ec2.instances.filter(Filters=[{'Name':'tag:guild', 'Values': [str(message.channel.guild.id)]}]))
-    print('Acting on ' + str(instances[0]) + ' (' + str(len(instances)) + ' matching instances)')
-    # assume that there will never be more than one matching instance
-    if (client.user.id in memberIDs and len(instances) > 0):
-        if 'stop' in message.content:
-            if turnOffInstance(instances[0]):
-                await message.channel.send('AWS Instance stopping')
-            else:
-                await message.channel.send('Error stopping AWS Instance')
-        elif 'start' in message.content:
-            if turnOnInstance(instances[0]):
-                await message.channel.send('AWS Instance starting')
-            else:
-                await message.channel.send('Error starting AWS Instance')
-        elif 'state' in message.content:
-            await message.channel.send('AWS Instance state is: ' + getInstanceState(instances[0]))
-        elif 'reboot' in message.content:
-            if rebootInstance(instances[0]):
-                await message.channel.send('AWS Instance rebooting')
-            else:
-                await message.channel.send('Error rebooting AWS Instance')
-        elif 'info' in message.content:
-            await message.channel.send('Server start/stop bot. Commands are `start`, `stop`, `state`, `reboot` and `info`')
+def stop_service(service):
+    ecs.update_service(cluster=service['clusterArn'],
+                       service=service['serviceArn'],
+                       desiredCount=0)
+
+def get_tasks(service):
+    tasks = ecs.list_tasks(cluster=service['clusterArn'], serviceName=service['serviceName'])['taskArns']
+    if tasks == None or len(tasks) == 0:
+        return []
     else:
-        print('Attempt to start bot by unrecognised guild ' + str(message.channel.guild.id))
+        return ecs.describe_tasks(cluster=service['clusterArn'], tasks=tasks)['tasks']
 
-def turnOffInstance(instance):
-    try:
-        instance.stop()
-        return True
-    except: 
-        print(traceback.format_exc())
-        return False
-
-def turnOnInstance(instance):
-    try:
-        instance.start()
-        return True
-    except:
-        print(traceback.format_exc())
-        return False
-
-def getInstanceState(instance):
-    aws_state = instance.state
-    if (aws_state['Name'] == 'running'):
-        return getPortState(instance.public_ip_address, 25565)
+def task_ip(task):
+    eni = next((item for item in task['attachments'] if item['type'] == 'ElasticNetworkInterface'), None)
+    if (eni == None):
+        return None
+    eni_id = next((item for item in eni['details'] if item['name'] == 'networkInterfaceId'), None)
+    if (eni_id == None):
+        return None 
+    intf = boto3.resource('ec2').NetworkInterface(eni_id['value'])
+    if (intf == None or intf.association_attribute == None):
+        return None
     else:
-        return aws_state['Name']
+        return intf.association_attribute['PublicIp']
 
-def getPortState(ip, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(3.0)
-    ready = sock.connect_ex((ip, port))
-    if ready == 0:
-        return 'ready at ' + ip 
+def status(service):
+    if (service == None):
+        print("Cannot find service")
     else:
-        return 'game startup in progress, please wait'
+        print(f'Found service with {service["runningCount"]} running tasks and {service["desiredCount"]} desired tasks')
+        tasks = get_tasks(service)
+        if (len(tasks) > 0):
+            print(f'Service has {len(tasks)} task, first task accessible at {task_ip(tasks[0])}')
 
-def rebootInstance(instance):
-    try:
-        instance.reboot()
-        return True
-    except:
-        print(traceback.format_exc())
-        return False
+def wait_for_stable(service):
+    waiter.wait(cluster=service['clusterArn'], services=[service['serviceArn']], WaiterConfig={'Delay': 5, 'MaxAttempts': 40})
+    return
 
-client.run(os.environ['AWSDISCORDTOKEN'])
+# temporary for testing
+guild_id="786042802630950984"
+
+cluster = get_cluster()
+service = get_service(guild_id, cluster)
+status(service)
