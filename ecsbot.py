@@ -1,9 +1,7 @@
 import discord, asyncio, os, boto3, socket, traceback
 
 client = discord.Client()
-
 ecs = boto3.client('ecs')
-waiter = ecs.get_waiter('services_stable')
 
 def get_cluster():
     return next(item for item in ecs.list_clusters()['clusterArns'] if 'minebot' in item)
@@ -143,9 +141,4 @@ async def on_message(message):
         # do nothing, message not for me
         return
 
-# temporary for testing
-guild_id="596215052156272645"
-
-cluster = get_cluster()
-service = get_service(guild_id, cluster)
-print_status(service)
+client.run(os.environ['AWSDISCORDTOKEN'])
