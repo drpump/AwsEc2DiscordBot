@@ -10,7 +10,7 @@ my kids and friends to start/stop a minecraft server, including:
 * templates for a `systemd` linux service added
 
 ## Tools Used
-* Python 3 and pip3
+* Python 3 (v3.8 or higher) and pip3
 * AWS CLI : ```pip3 install awscli ```
 * AWS BOTO library : ``` pip3 install boto3 ```
 * Discord Bot library : ``` pip3 install discord ```
