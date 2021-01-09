@@ -6,7 +6,7 @@ Type=exec
 User=ec2bot
 Environment="AWSDISCORDTOKEN=?" "AWSBOTPATH=/home/ec2bot/bot.py"
 Restart=on-failure
-ExecStart=/bin/sh -ec "exec python3 $AWSBOTPATH/bot.py"
+ExecStart=/bin/sh -ec "exec python3 $AWSBOTPATH"
 
 [Install]
 WantedBy=network-online.target
