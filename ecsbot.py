@@ -138,6 +138,7 @@ async def on_message(message):
                 start_service(service)
                 await message.channel.send('Minecraft starting again...')
                 await wait_until_stable(guild)
+                await message.channel.send(current_state(get_service(guild)))
             except Exception as e:
                 await message.channel.send('Error restarting minecraft:' + str(e))
         elif INFO in message.content:
