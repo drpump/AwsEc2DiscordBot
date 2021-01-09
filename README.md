@@ -20,6 +20,7 @@ my kids and friends to start/stop a minecraft server, including:
 * for EC2 bots:
   - create an EC2 instance and configure minecraft to run as a daemon. I used msm (https://msmhq.com)
   - add a `guild` tag to your ec2 instance with your Discord guild ID as the value
+  
 ## Bot Usage | Installation
 1. Install and setup the required tools above on your bot server
 2. Setup AWS CLI with ``` aws configure ```
