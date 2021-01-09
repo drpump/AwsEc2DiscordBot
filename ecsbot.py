@@ -3,6 +3,14 @@ import discord, asyncio, os, boto3, socket, traceback
 client = discord.Client()
 ecs = boto3.client('ecs')
 
+START='start'
+STOP='stop'
+STATE='state'
+BOUNCE='bounce'
+INFO='info'
+COMMANDS=[START,STOP,STATE,BOUNCE,INFO]
+COMMANDS_STR=', '.join(COMMANDS)
+
 def get_cluster():
     return next(item for item in ecs.list_clusters()['clusterArns'] if 'minebot' in item)
 
@@ -94,11 +102,11 @@ async def on_message(message):
     guild = str(message.channel.guild.id)
     service = get_service(guild)
     if service == None:
-        print('Attempt to send command from unrecognised guild: ' + guild)
+        print(f'Unrecognised guild {guild} sent command "{message.content}" from user {client.user.id}')
         return
     elif (client.user.id in memberIDs):
         print(f'Processing message "{message.content}" from user {client.user.id} and guild {guild}')
-        if 'stop' in message.content:
+        if STOP in message.content:
             try:
                 stop_service(service)
                 await message.channel.send('Minecraft stopping ...')
@@ -107,7 +115,7 @@ async def on_message(message):
             except Exception as e:
                 print(traceback.format_exc())
                 await message.channel.send('Error stopping minecraft: ' + str(e))
-        elif 'start' in message.content:
+        elif START in message.content:
             try:
                 start_service(service)
                 await message.channel.send('Minecraft starting ...')
@@ -116,13 +124,13 @@ async def on_message(message):
             except Exception as e:
                 print(traceback.format_exc())
                 await message.channel.send('Error starting minecraft: ' + str(e))
-        elif 'state' in message.content:
+        elif STATE in message.content:
             try:
                 await message.channel.send(current_state(service))
             except Exception as e:
                 print(traceback.format_exc())
                 await message.channel.send('Error getting status: ' + str(e))
-        elif 'restart' in message.content:
+        elif BOUNCE in message.content:
             try:
                 stop_service(service)
                 await message.channel.send('Minecraft stopping ...')
@@ -132,10 +140,11 @@ async def on_message(message):
                 await wait_until_stable(guild)
             except Exception as e:
                 await message.channel.send('Error restarting minecraft:' + str(e))
-        elif 'info' in message.content:
-            await message.channel.send('Server start/stop bot. Commands are `start`, `stop`, `state`, `restart` and `info`')
+        elif INFO in message.content:
+            await message.channel.send(f'Minecraft server start/stop bot. Commands are {COMMANDS_STR}')
+            await message.channel.send(current_state(service))
         else:
-            await message.channel.send('Unrecognised command. Commands are `start`, `stop`, `state`, `restart` and `info`')
+            await message.channel.send(f'Unrecognised command. Commands are {COMMANDS_STR}')
         return
     else:
         # do nothing, message not for me
